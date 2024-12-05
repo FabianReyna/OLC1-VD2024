@@ -1,0 +1,60 @@
+package analisis;
+
+// importaciones 
+import java_cup.runtime.Symbol;
+
+parser code
+{:
+    scanner s;
+    parser(scanner s) {this.s = s;}
+
+    public void syntax_error(Symbol s){
+        System.out.println("Error sintactico Recuperable");
+    }
+
+    public void unrecovered_syntax_error(Symbol s){
+        System.out.println("Error sintactico No Recuperable");
+    }
+:}
+
+action code
+{:
+    String consola = "";
+:}
+
+terminal String CADENA, ENTERO, DECIMAL;
+terminal FINCADENA, IMPRIMIR;
+terminal MAS, MENOS, MULT, DIV, PAR1, PAR2, UMENOS;
+
+nonterminal INICIO;
+nonterminal INSTRUCCIONES, INSTRUCCION;
+nonterminal Double EXPRESION;
+
+//PRECEDENCIAS
+precedence left MAS, MENOS;
+precedence left MULT, DIV;
+precedence right UMENOS;
+
+start with INICIO;
+
+// ESCRIBIR LA GRAMATICA
+INICIO ::= INSTRUCCIONES    {: RESULT=consola; :}
+;
+
+INSTRUCCIONES ::= INSTRUCCIONES INSTRUCCION
+                | INSTRUCCION
+;
+
+INSTRUCCION ::= IMPRIMIR PAR1 EXPRESION:e PAR2 FINCADENA  {: consola+=e+"\n"; :}
+              | IMPRIMIR PAR1 CADENA:c PAR2 FINCADENA     {: consola+=c+"\n"; :}
+;
+
+EXPRESION ::= MENOS EXPRESION:a               {: RESULT = -a; :}%prec UMENOS
+            | EXPRESION:a MAS EXPRESION:b     {: RESULT = a + b; :}
+            | EXPRESION:a MENOS EXPRESION:b   {: RESULT = a - b; :}
+            | EXPRESION:a MULT EXPRESION:b    {: RESULT = a * b; :}
+            | EXPRESION:a DIV EXPRESION:b     {: RESULT = a / b; :}                  
+            | PAR1 EXPRESION:e PAR2           {: RESULT = e; :}
+            | ENTERO:e                        {: RESULT = new Double(e); :}
+            | DECIMAL:e                       {: RESULT = new Double(e); :}
+;
