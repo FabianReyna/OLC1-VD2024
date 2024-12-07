@@ -1,0 +1,67 @@
+package analisis;
+
+// importaciones
+import java_cup.runtime.Symbol;
+import java.util.LinkedList;
+import abstracto.Instruccion;
+import simbolo.*;
+
+//INSTRUCCIONES
+import instrucciones.Print;
+
+//EXPRESIONES
+import expresiones.Nativo;
+import expresiones.Suma;
+
+// parser
+parser code
+{:
+    scanner s;
+    parser(scanner s){this.s = s;}
+
+    public void syntax_error(Symbol s){}
+
+    public void unrecovered_syntax_error (Symbol s){}
+
+:}
+
+action code
+{:
+:}
+
+
+terminal String CADENA, ENTERO, DECIMAL;
+terminal FINCADENA, IMPRIMIR;
+terminal PAR1, PAR2, MAS;
+
+nonterminal LinkedList<Instruccion> INICIO, INSTRUCCIONES;
+nonterminal Instruccion INSTRUCCION, IMPRESION;
+nonterminal Instruccion EXPRESION;
+
+precedence left MAS;
+
+start with INICIO;
+
+INICIO ::= INSTRUCCIONES:a    {: RESULT = a; :}
+;
+
+INSTRUCCIONES ::= INSTRUCCIONES:a INSTRUCCION:b     {: RESULT = a; RESULT.add(b); :}
+                | INSTRUCCION:a                     {: RESULT = new LinkedList<Instruccion>(); RESULT.add(a); :}
+;
+
+INSTRUCCION ::= IMPRESION:a FINCADENA   {: RESULT = a; :}
+;
+
+//public Print(Instruccion expresion, int linea, int col) {
+IMPRESION ::= IMPRIMIR PAR1 EXPRESION:a PAR2  {: RESULT = new Print(a, aleft, aright); :}
+;
+
+//public Nativo(Object valor, Tipo tipo, int linea, int col) {
+//public Suma(Instruccion opIzq, Instruccion opDer, int linea, int col) {
+
+EXPRESION ::= EXPRESION:a MAS EXPRESION:b   {: RESULT = new Suma(a, b, aleft, aright); :}
+            | ENTERO:a                  {: RESULT = new Nativo(Integer.parseInt(a),new Tipo(tipoDato.ENTERO), aleft, aright); :}
+            | CADENA:a                  {: RESULT = new Nativo(a,new Tipo(tipoDato.CADENA), aleft, aright); :}
+            | DECIMAL:a                 {: RESULT = new Nativo(new Double(a),new Tipo(tipoDato.DECIMAL), aleft, aright); :}
+            | PAR1 EXPRESION:a PAR2     {: RESULT = a; :}
+;
