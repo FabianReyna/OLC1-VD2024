@@ -1,0 +1,104 @@
+package analisis;
+
+// importaciones
+import java_cup.runtime.Symbol;
+import java.util.LinkedList;
+import abstracto.Instruccion;
+import simbolo.*;
+import excepciones.Errores;
+
+//INSTRUCCIONES
+import instrucciones.Print;
+import instrucciones.Declaracion;
+import instrucciones.AsignacionVar;
+
+//EXPRESIONES
+import expresiones.Nativo;
+import expresiones.Suma;
+import expresiones.Resta;
+import expresiones.NegacionUnaria;
+import expresiones.Equals;
+import expresiones.AccesoVar;
+
+// parser
+parser code
+{:
+    scanner s;
+    parser(scanner s){this.s = s;}
+    
+    public LinkedList<Errores> erroresSintacticos = new LinkedList<>();
+
+    public void syntax_error(Symbol s){
+        erroresSintacticos.add(new Errores("SINTACTICO RECUPERABLE",
+        "No se esperaba el componente "+s.value,
+        s.left,
+        s.right));
+    }
+
+    public void unrecovered_syntax_error (Symbol s){
+        erroresSintacticos.add(new Errores("SINTACTICO NO RECUPERABLE",
+            "No se esperaba el componente "+s.value,
+            s.left,
+            s.right));
+    }
+
+:}
+
+action code
+{:
+:}
+
+
+terminal String CADENA, ENTERO, DECIMAL, ID;
+terminal FINCADENA, IMPRIMIR;
+terminal PAR1, PAR2, MAS, MENOS, UMENOS, IGUAL, EQUALS;
+terminal INT, DOUBLE, STRING;
+
+nonterminal LinkedList<Instruccion> INICIO, INSTRUCCIONES;
+nonterminal Instruccion INSTRUCCION, IMPRESION, DECLARACION, ASIGNACION;
+nonterminal Instruccion EXPRESION;
+nonterminal Tipo TIPOS;
+
+precedence left EQUALS;
+precedence left MAS, MENOS;
+precedence right UMENOS;
+
+start with INICIO;
+
+INICIO ::= INSTRUCCIONES:a    {: RESULT = a; :}
+;
+
+INSTRUCCIONES ::= INSTRUCCIONES:a INSTRUCCION:b     {: RESULT = a; RESULT.add(b); :}
+                | INSTRUCCION:a                     {: RESULT = new LinkedList<Instruccion>(); RESULT.add(a); :}
+;
+
+INSTRUCCION ::= IMPRESION:a FINCADENA   {: RESULT = a; :}
+              | DECLARACION:a FINCADENA {: RESULT = a; :}
+              | ASIGNACION:a FINCADENA  {: RESULT = a; :}
+              | error FINCADENA        {: RESULT = null; :}
+;
+
+IMPRESION ::= IMPRIMIR PAR1 EXPRESION:a PAR2  {: RESULT = new Print(a, aleft, aright); :}
+;
+
+DECLARACION ::= TIPOS:a ID:b IGUAL EXPRESION:c   {: RESULT = new Declaracion(b, c, a, aleft, aright); :}
+;
+
+ASIGNACION ::= ID:a IGUAL EXPRESION:c   {: RESULT = new AsignacionVar(a, c, aleft, aright); :}
+;
+
+TIPOS ::= INT       {: RESULT = new Tipo(tipoDato.ENTERO); :}
+        | DOUBLE    {: RESULT = new Tipo(tipoDato.DECIMAL); :}
+        | STRING    {: RESULT = new Tipo(tipoDato.CADENA); :}
+;
+
+EXPRESION ::= MENOS EXPRESION:a             {: RESULT = new NegacionUnaria(a, aleft, aright);  :} %prec UMENOS
+            | EXPRESION:a MAS EXPRESION:b   {: RESULT = new Suma(a, b, aleft, aright); :}
+            | EXPRESION:a MENOS EXPRESION:b {: RESULT = new Resta(a, b, aleft, aright);  :}
+            | EXPRESION:a EQUALS EXPRESION:b {: RESULT = new Equals(a, b, aleft, aright); :}
+            | ENTERO:a                  {: RESULT = new Nativo(Integer.parseInt(a),new Tipo(tipoDato.ENTERO), aleft, aright); :}
+            | CADENA:a                  {: RESULT = new Nativo(a,new Tipo(tipoDato.CADENA), aleft, aright); :}
+            | DECIMAL:a                 {: RESULT = new Nativo(new Double(a),new Tipo(tipoDato.DECIMAL), aleft, aright); :}
+            | ID:a                      {: RESULT = new AccesoVar(a, aleft, aright); :}
+            | PAR1 EXPRESION:a PAR2     {: RESULT = a; :}
+;
